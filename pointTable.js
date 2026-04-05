@@ -851,6 +851,34 @@ async function handleEditPtMatch(message, args) {
     const requestedGroup = normalizeRequestedGroup(args);
     const legacyMatchId = parseInt(args[0], 10);
 
+    // Support direct field updates if field=value is provided
+    if (!isNaN(legacyMatchId) && args.some(a => a.includes('='))) {
+        const match = await db.get('SELECT * FROM pt_matches WHERE id = ? AND guild_id = ?', legacyMatchId, guildId);
+        if (!match) return message.reply(`❌ Match ID **${legacyMatchId}** not found.`);
+
+        const updates = {};
+        for (let i = 1; i < args.length; i++) {
+            const [key, val] = args[i].split('=');
+            if (!key || val === undefined) continue;
+            updates[key.trim()] = val.trim();
+        }
+
+        const allowedFields = ['score_a_runs', 'score_a_wickets', 'score_b_runs', 'score_b_wickets', 'winner', 'match_number', 'group_letter', 'season'];
+        const setClauses = [];
+        const params = [];
+        for (const [key, val] of Object.entries(updates)) {
+            if (!allowedFields.includes(key)) {
+                return message.reply(`Field \`${key}\` is not allowed or invalid.`);
+            }
+            setClauses.push(`${key} = ?`);
+            params.push(val);
+        }
+        params.push(legacyMatchId, guildId);
+
+        await db.run(`UPDATE pt_matches SET ${setClauses.join(', ')} WHERE id = ? AND guild_id = ?`, params);
+        return message.reply(`✅ Match ID **${legacyMatchId}** updated successfully.`);
+    }
+
     if (requestedGroup && !allowedGroups.includes(requestedGroup)) {
         return message.reply(`Unknown group **${requestedGroup}**. Valid groups: ${allowedGroups.join(', ')}.`);
     }

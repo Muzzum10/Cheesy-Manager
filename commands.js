@@ -2771,6 +2771,7 @@ async function resolveTargetUserBySearchTerm(message, searchTerm) {
     return null;
 }
 
+exports.resolveTargetUser = resolveTargetUser;
 async function resolveTargetUser(message, args, mentionOnly = false) {
     const mention = message.mentions.users.first();
     if (mention)
@@ -7303,6 +7304,70 @@ async function generateLBImage(cat, allStats, seasonName, client, authorId) {
     return canvas.toBuffer();
 }
 
+async function displayTeamHistory(message, team) {
+    const db = (0, database_1.getDB)();
+    const guildId = message.guild.id;
+    const matches = await db.all(`
+        SELECT * FROM pt_matches
+        WHERE guild_id = ? AND (team_a = ? OR team_b = ?)
+        ORDER BY timestamp DESC
+    `, guildId, team.team_name, team.team_name);
+
+    if (matches.length === 0) {
+        return message.reply(`No matches found for **${team.team_name}**.`);
+    }
+
+    const history = new Map(); // Opponent -> { wins, losses, draws }
+    let totalWins = 0;
+    let totalLosses = 0;
+    let totalDraws = 0;
+
+    for (const m of matches) {
+        const opponent = m.team_a === team.team_name ? m.team_b : m.team_a;
+        if (!history.has(opponent)) {
+            history.set(opponent, { wins: 0, losses: 0, draws: 0 });
+        }
+        const data = history.get(opponent);
+        
+        if (m.winner === team.team_name) {
+            data.wins++;
+            totalWins++;
+        } else if (m.winner === 'Draw') {
+            data.draws++;
+            totalDraws++;
+        } else if (m.winner) {
+            data.losses++;
+            totalLosses++;
+        }
+    }
+
+    const embed = new discord_js_1.EmbedBuilder()
+        .setTitle(`📊 Match History: ${team.team_name}`)
+        .setDescription(`Overall Record: **${totalWins}W - ${totalLosses}L${totalDraws > 0 ? ` - ${totalDraws}D` : ''}**`)
+        .setColor(0x3498DB)
+        .setTimestamp()
+        .setFooter({ text: `Requested by ${message.author.username}`, iconURL: message.author.displayAvatarURL() });
+
+    const opponentLines = [];
+    for (const [opponent, data] of history.entries()) {
+        opponentLines.push(`**vs ${opponent}**: \`${data.wins}W - ${data.losses}L${data.draws > 0 ? ` - ${data.draws}D` : ''}\``);
+    }
+
+    // Split into fields if list is long, or just description
+    if (opponentLines.length <= 15) {
+        embed.addFields({ name: 'Opponents', value: opponentLines.join('\n') });
+    } else {
+        // Handle long lists by splitting into multiple fields or truncated list
+        const mid = Math.ceil(opponentLines.length / 2);
+        embed.addFields(
+            { name: 'Opponents (1/2)', value: opponentLines.slice(0, mid).join('\n'), inline: true },
+            { name: 'Opponents (2/2)', value: opponentLines.slice(mid).join('\n'), inline: true }
+        );
+    }
+
+    return message.reply({ embeds: [embed] });
+}
+
 async function handleUserCommand(message, command, args) {
     const db = (0, database_1.getDB)();
     const guildId = message.guild?.id;
@@ -7397,6 +7462,24 @@ async function handleUserCommand(message, command, args) {
             embed.setDescription(playerList);
         }
         message.reply({ embeds: [embed] });
+    }
+    else if (command === 'teamhistory') {
+        const identifier = args.join(' ');
+        if (!identifier) {
+            const selection = await promptForAdminManagedTeamSelection(message, guildId, {
+                groupPrompt: "Select a **Group** to view team history:",
+                teamPrompt: "Select a **Team** to view history:"
+            });
+            if (selection.ok) {
+                return await displayTeamHistory(message, selection.team);
+            }
+            return;
+        }
+        const team = await findTeamByIdentifier(guildId, identifier);
+        if (!team) {
+            return message.reply("Could not find that team.");
+        }
+        return await displayTeamHistory(message, team);
     }
     else if (command === 'publicping' || command === 'pping' || command === 'pp') {
         let role = message.mentions.roles.first();
@@ -12083,10 +12166,10 @@ async function handleHcHistoryCommand(message) {
     const guildId = message.guild?.id;
     const { buildPagedButtonRow } = utils_1;
 
-    const matches = await db.all("SELECT * FROM hc_auto_matches WHERE guild_id = ? ORDER BY started_at DESC", guildId);
+    const matches = await db.all("SELECT * FROM hc_auto_matches WHERE guild_id = ? ORDER BY id DESC", guildId);
     if (matches.length === 0) return message.reply("No HC auto-tracking history found.");
 
-    const itemsPerPage = 5;
+    const itemsPerPage = 3;
     const totalPages = Math.ceil(matches.length / itemsPerPage);
 
     const buildEmbed = async (pageIndex) => {
@@ -12102,11 +12185,9 @@ async function handleHcHistoryCommand(message) {
         for (const m of pageMatches) {
             const startTime = m.started_at ? `<t:${m.started_at}:f>` : "Unknown";
             const endTime = m.ended_at ? `<t:${m.ended_at}:f>` : (m.status === "ACTIVE" ? "*Active*" : "Unknown");
-            const channel = message.guild.channels.cache.get(m.channel_id) || `#${m.channel_id}`;
+            const channel = message.guild.channels.cache.get(m.channel_id) ? `<#${m.channel_id}>` : `#${m.channel_id}`;
 
             const matchups = await db.all("SELECT batter_display_name, bowler_display_name, runs, balls, dismissals FROM hc_matchup_match_log WHERE match_id = ?", m.id);
-            const matchupText = matchups.length > 0 ? matchups.map(mu => `🔹 ${mu.batter_display_name} vs ${mu.bowler_display_name}: **${mu.runs}(${mu.balls})** ${mu.dismissals ? "[W]" : ""}`).join("\n") : "*No matchup data recorded yet.*";
-
             const matchupTextFormatted = buildGroupedHcHistoryMatchupText(matchups, 850);
             embed.addFields({
                 name: `Match ID: ${m.id} [${m.status}]`,

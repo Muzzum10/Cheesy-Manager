@@ -4,7 +4,8 @@ const path=require("path");
 const {ActionRowBuilder,ButtonBuilder,ButtonStyle,ChannelType,EmbedBuilder,StringSelectMenuBuilder}=require("discord.js");
 const {getDB}=require("./database");
 const {appendAdminAuditLog}=require("./auditLog");
-const {askConfirmation,isAdmin}=require("./utils");
+const {askConfirmation,isAdmin,isSuperAdmin}=require("./utils");
+const {resolveTargetUser}=require("./commands");
 
 const IPL_SCHEDULE_PATH=path.join(__dirname,"iplmatches.md");
 const IST_OFFSET_MINUTES=330;
@@ -17,7 +18,7 @@ const MATCH_CANCELLED_OUTCOME="MATCH_CANCELLED";
 const REMINDER_ROLE_NAME="IPL Prediction Alerts";
 const REMINDER_REACTION_EMOJI="🔔";
 
-const ADMIN_COMMANDS={SET_CHANNEL:"setiplpredictchannel",SET_ANNOUNCE_CHANNEL:"setiplannouncechannel",SET_ANNOUNCE_ROLES:"setiplannouncepingroles",ANNOUNCE:"announceipl",WINNER:"iplwinner",EDIT_WINNER:"editiplwinner",TOP4_RESULT:"ipltop4result",TOP4_PICKS:"ipltop4picks",FIXTURES:"iplfixtures",MATCH_REPORT:"iplmatchreport",DAY_PICKS:"ipldaypicks",STATS_PREVIEW:"predictionstatspreview",LB_PREVIEW:"predictlbpreview",FLOW_PREVIEW:"predictionflowpreview",GUIDE:"postpredictguide",REMINDER_PANEL:"predictiondmpanel"};
+const ADMIN_COMMANDS={SET_CHANNEL:"setiplpredictchannel",SET_ANNOUNCE_CHANNEL:"setiplannouncechannel",SET_ANNOUNCE_ROLES:"setiplannouncepingroles",ANNOUNCE:"announceipl",WINNER:"iplwinner",EDIT_WINNER:"editiplwinner",TOP4_RESULT:"ipltop4result",TOP4_PICKS:"ipltop4picks",FIXTURES:"iplfixtures",MATCH_REPORT:"iplmatchreport",DAY_PICKS:"ipldaypicks",STATS_PREVIEW:"predictionstatspreview",LB_PREVIEW:"predictlbpreview",FLOW_PREVIEW:"predictionflowpreview",GUIDE:"postpredictguide",REMINDER_PANEL:"predictiondmpanel",SUPER_PREDICT:"superpredict"};
 const USER_COMMANDS={PREDICT:"predict",LEADERBOARD:"predictlb",STATUS:"iplmatch",TOP4:"predicttop4",STATS:"predictionstats",MY_PREDICTIONS:"mypredictions"};
 
 function normalizeTeamToken(input){return String(input||"").trim().toUpperCase().replace(/\s+/g," ");}
@@ -1384,6 +1385,102 @@ async function handlePredictionLbPreviewCommand(message){
   return message.reply({embeds:[await buildPredictionLbPreviewEmbed(message.guild)]});
 }
 
+async function handleSuperPredictCommand(message, args) {
+  if (!isGlobalManager(message.member)) {
+    return message.reply("You do not have permission to use the Super Predict command.");
+  }
+  const targetUser = await resolveTargetUser(message, args);
+  if (!targetUser) {
+    return message.reply("Usage: `?superpredict <username/mention>`");
+  }
+
+  const db = getDB();
+  const guildId = message.guild.id;
+  const matches = await db.all("SELECT * FROM ipl_prediction_matches WHERE guild_id = ? ORDER BY id DESC", guildId);
+  if (!matches.length) {
+    return message.reply("No IPL prediction matches found for this server.");
+  }
+
+  const matchOptions = matches.map(m => ({
+    label: `#${m.id} - ${m.match_label}`,
+    description: `Status: ${m.status} | Teams: ${m.team_a} vs ${m.team_b}`,
+    value: String(m.id)
+  })).slice(0, 25);
+
+  const selectId = `ipl_super_select_${message.id}`;
+  const selectRow = new ActionRowBuilder().addComponents(
+    new StringSelectMenuBuilder()
+      .setCustomId(selectId)
+      .setPlaceholder("Select a match to update prediction")
+      .addOptions(matchOptions)
+  );
+
+  const embed = new EmbedBuilder()
+    .setTitle("Admin: Super Prediction Update")
+    .setDescription(`Updating prediction for **${targetUser.username}**.\n\nPlease select a match from the dropdown below.`)
+    .setColor(0x0ea5e9);
+
+  const response = await message.reply({ embeds: [embed], components: [selectRow] });
+
+  try {
+    const selection = await response.awaitMessageComponent({
+      filter: i => i.user.id === message.author.id && i.customId === selectId,
+      time: 60000
+    });
+
+    const matchId = parseInt(selection.values[0]);
+    const match = matches.find(m => m.id === matchId);
+
+    const currentEntry = await db.get("SELECT predicted_team FROM ipl_prediction_entries WHERE match_id = ? AND user_id = ?", matchId, targetUser.id);
+    const currentText = currentEntry ? `Currently predicted: **${currentEntry.predicted_team}**` : "No current prediction.";
+
+    const teamAId = `ipl_super_team_a_${message.id}`;
+    const teamBId = `ipl_super_team_b_${message.id}`;
+    const cancelId = `ipl_super_cancel_${message.id}`;
+
+    const buttonRow = new ActionRowBuilder().addComponents(
+      new ButtonBuilder().setCustomId(teamAId).setLabel(match.team_a).setStyle(ButtonStyle.Primary),
+      new ButtonBuilder().setCustomId(teamBId).setLabel(match.team_b).setStyle(ButtonStyle.Danger),
+      new ButtonBuilder().setCustomId(cancelId).setLabel("Cancel").setStyle(ButtonStyle.Secondary)
+    );
+
+    await selection.update({
+      content: `Selected Match: **${match.match_label}**\n${currentText}\n\nSelect the team to set for **${targetUser.username}**:`,
+      embeds: [],
+      components: [buttonRow]
+    });
+
+    const buttonClick = await response.awaitMessageComponent({
+      filter: i => i.user.id === message.author.id && [teamAId, teamBId, cancelId].includes(i.customId),
+      time: 60000
+    });
+
+    if (buttonClick.customId === cancelId) {
+      return await buttonClick.update({ content: "Super prediction update cancelled.", components: [] });
+    }
+
+    const predictedTeam = buttonClick.customId === teamAId ? match.team_a : match.team_b;
+    const now = Math.floor(Date.now() / 1000);
+
+    await db.run(`INSERT INTO ipl_prediction_entries (match_id, user_id, predicted_team, predicted_at) VALUES (?, ?, ?, ?) ON CONFLICT(match_id, user_id) DO UPDATE SET predicted_team = excluded.predicted_team, predicted_at = excluded.predicted_at`, matchId, targetUser.id, predictedTeam, now);
+    
+    await appendAdminAuditLog(message.guild.id, message.author.id, "SUPER_PREDICT", `Updated prediction for ${targetUser.username} in Match #${matchId} to ${predictedTeam}`);
+
+    return await buttonClick.update({
+      content: `✅ Successfully updated **${targetUser.username}'s** prediction for **${match.match_label}** to **${predictedTeam}**.`,
+      components: []
+    });
+
+  } catch (e) {
+    const isTimeout = e.name === 'InteractionCollectorError' || e.code === 'InteractionCollectorError' || String(e.message || '').toLowerCase().includes('time');
+    if (isTimeout) {
+      return await response.edit({ content: "Timed out waiting for interaction.", components: [] }).catch(() => null);
+    }
+    console.error(e);
+    return await response.edit({ content: "An error occurred while processing the super prediction.", components: [] }).catch(() => null);
+  }
+}
+
 async function handleUserCommand(message,command,args){
   if(command===USER_COMMANDS.PREDICT||/^predict\d+$/i.test(command)){await handlePredictCommand(message); return true;}
   if(command===USER_COMMANDS.LEADERBOARD){await handleLeaderboardCommand(message); return true;}
@@ -1410,6 +1507,7 @@ async function handleAdminCommand(message,command,args){
   if(command===ADMIN_COMMANDS.LB_PREVIEW){await handlePredictionLbPreviewCommand(message); return true;}
   if(command===ADMIN_COMMANDS.FLOW_PREVIEW){await handlePredictionFlowPreviewCommand(message,args); return true;}
   if(command===ADMIN_COMMANDS.GUIDE){await handleGuideCommand(message,args); return true;}
+  if(command===ADMIN_COMMANDS.SUPER_PREDICT){await handleSuperPredictCommand(message,args); return true;}
   return false;
 }
 async function handleInteraction(interaction){
