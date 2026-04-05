@@ -1,0 +1,328 @@
+{
+  "generatedAt": "2026-04-04T09:48:30.758Z",
+  "sqlitePath": "C:\\Users\\muzzu_6\\Downloads\\archive-2026-04-04T085944Z\\auction_v2.sqlite",
+  "tables": 57,
+  "totalRows": 9260,
+  "tableCounts": [
+    {
+      "table": "admin_audit_logs",
+      "rowCount": 108
+    },
+    {
+      "table": "command_usage_stats",
+      "rowCount": 329
+    },
+    {
+      "table": "disabled_global_manager_servers",
+      "rowCount": 2
+    },
+    {
+      "table": "fixture_settings",
+      "rowCount": 3
+    },
+    {
+      "table": "fixture_setup_state",
+      "rowCount": 0
+    },
+    {
+      "table": "generated_fixtures",
+      "rowCount": 58
+    },
+    {
+      "table": "global_log_settings",
+      "rowCount": 1
+    },
+    {
+      "table": "global_managers",
+      "rowCount": 1
+    },
+    {
+      "table": "guild_settings",
+      "rowCount": 3
+    },
+    {
+      "table": "hc_analysis_sessions",
+      "rowCount": 0
+    },
+    {
+      "table": "hc_auto_matches",
+      "rowCount": 18
+    },
+    {
+      "table": "hc_cricket_saved_embeds",
+      "rowCount": 30
+    },
+    {
+      "table": "hc_global_matchups",
+      "rowCount": 2025
+    },
+    {
+      "table": "ipl_prediction_matches",
+      "rowCount": 9
+    },
+    {
+      "table": "ipl_prediction_settings",
+      "rowCount": 2
+    },
+    {
+      "table": "ipl_top4_entries",
+      "rowCount": 24
+    },
+    {
+      "table": "ipl_top4_results",
+      "rowCount": 0
+    },
+    {
+      "table": "playoff_matches",
+      "rowCount": 0
+    },
+    {
+      "table": "potd_polls",
+      "rowCount": 7
+    },
+    {
+      "table": "potd_settings",
+      "rowCount": 1
+    },
+    {
+      "table": "pt_matches",
+      "rowCount": 71
+    },
+    {
+      "table": "pt_settings",
+      "rowCount": 7
+    },
+    {
+      "table": "pt_team_aliases",
+      "rowCount": 22
+    },
+    {
+      "table": "public_pings",
+      "rowCount": 7
+    },
+    {
+      "table": "reserve_limits",
+      "rowCount": 1
+    },
+    {
+      "table": "role_captains",
+      "rowCount": 0
+    },
+    {
+      "table": "role_pingers",
+      "rowCount": 12
+    },
+    {
+      "table": "scheduled_messages",
+      "rowCount": 20
+    },
+    {
+      "table": "sets",
+      "rowCount": 7
+    },
+    {
+      "table": "stats_match_context",
+      "rowCount": 323
+    },
+    {
+      "table": "stats_matches",
+      "rowCount": 921
+    },
+    {
+      "table": "stats_players",
+      "rowCount": 175
+    },
+    {
+      "table": "stats_seasons",
+      "rowCount": 29
+    },
+    {
+      "table": "support_bug_reports",
+      "rowCount": 2
+    },
+    {
+      "table": "support_server_configs",
+      "rowCount": 4
+    },
+    {
+      "table": "support_suggestions",
+      "rowCount": 0
+    },
+    {
+      "table": "support_tickets",
+      "rowCount": 1
+    },
+    {
+      "table": "support_warnings",
+      "rowCount": 3
+    },
+    {
+      "table": "team_groups",
+      "rowCount": 17
+    },
+    {
+      "table": "team_reservations",
+      "rowCount": 6
+    },
+    {
+      "table": "team_stadiums",
+      "rowCount": 10
+    },
+    {
+      "table": "teams",
+      "rowCount": 10
+    },
+    {
+      "table": "trade_settings",
+      "rowCount": 2
+    },
+    {
+      "table": "trades",
+      "rowCount": 0
+    },
+    {
+      "table": "auction_players",
+      "rowCount": 52
+    },
+    {
+      "table": "hc_analysis_messages",
+      "rowCount": 0
+    },
+    {
+      "table": "hc_auto_message_versions",
+      "rowCount": 1700
+    },
+    {
+      "table": "hc_matchup_match_log",
+      "rowCount": 2906
+    },
+    {
+      "table": "ipl_prediction_entries",
+      "rowCount": 137
+    },
+    {
+      "table": "ipl_prediction_panels",
+      "rowCount": 135
+    },
+    {
+      "table": "match_reservations",
+      "rowCount": 27
+    },
+    {
+      "table": "potd_poll_candidates",
+      "rowCount": 20
+    },
+    {
+      "table": "support_ticket_members",
+      "rowCount": 1
+    },
+    {
+      "table": "team_captains",
+      "rowCount": 4
+    },
+    {
+      "table": "team_join_requests",
+      "rowCount": 0
+    },
+    {
+      "table": "team_vice_captains",
+      "rowCount": 6
+    },
+    {
+      "table": "auction_ledger",
+      "rowCount": 1
+    }
+  ],
+  "identities": [
+    {
+      "table": "admin_audit_logs",
+      "column": "id",
+      "value": 108
+    },
+    {
+      "table": "generated_fixtures",
+      "column": "id",
+      "value": 241
+    },
+    {
+      "table": "hc_analysis_messages",
+      "column": "id",
+      "value": 606
+    },
+    {
+      "table": "hc_analysis_sessions",
+      "column": "id",
+      "value": 10
+    },
+    {
+      "table": "hc_auto_matches",
+      "column": "id",
+      "value": 29
+    },
+    {
+      "table": "hc_auto_message_versions",
+      "column": "id",
+      "value": 25275
+    },
+    {
+      "table": "hc_cricket_saved_embeds",
+      "column": "id",
+      "value": 238
+    },
+    {
+      "table": "hc_matchup_match_log",
+      "column": "id",
+      "value": 5367
+    },
+    {
+      "table": "ipl_prediction_matches",
+      "column": "id",
+      "value": 9
+    },
+    {
+      "table": "match_reservations",
+      "column": "id",
+      "value": 101
+    },
+    {
+      "table": "potd_polls",
+      "column": "id",
+      "value": 9
+    },
+    {
+      "table": "pt_matches",
+      "column": "id",
+      "value": 74
+    },
+    {
+      "table": "scheduled_messages",
+      "column": "id",
+      "value": 20
+    },
+    {
+      "table": "support_bug_reports",
+      "column": "id",
+      "value": 2
+    },
+    {
+      "table": "support_tickets",
+      "column": "id",
+      "value": 1
+    },
+    {
+      "table": "support_warnings",
+      "column": "id",
+      "value": 3
+    },
+    {
+      "table": "team_join_requests",
+      "column": "id",
+      "value": 9
+    },
+    {
+      "table": "teams",
+      "column": "team_id",
+      "value": 109
+    }
+  ]
+}

@@ -1,0 +1,3 @@
+insert into public."support_bug_reports" ("id", "guild_id", "bug_number", "author_id", "channel_id", "message_id", "title", "description_text", "status", "severity", "note_text", "created_at", "updated_at") values
+(1, '1487703325745877116', 1, '995695748840701992', '1487717137144610846', '1488400935880364204', 'Cmd test Kanta bnake aya hu me', 'Cmd test Kanta bnake aya hu me', 'open', 'medium', '', 1774932836, 1774932836),
+(2, '1488628076756734103', 1, '1359909481915355166', '1488630276052619524', '1489340917792903459', 'bug machar ud raha h', 'bug machar ud raha h', 'open', 'medium', '', 1775156946, 1775156946);;

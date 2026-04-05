@@ -1,0 +1,2 @@
+insert into public."potd_settings" ("guild_id", "channel_id", "window_start_minute", "window_end_minute", "window_end_day_offset", "allow_multiple_votes", "results_channel_id", "ping_role_id") values
+('1409091283384799286', '1445163844593909800', 1200, 90, 1, 1, '1445163844593909800', '1487391797079445574');;

@@ -1,0 +1,2 @@
+insert into public."support_tickets" ("id", "guild_id", "ticket_number", "channel_id", "opener_id", "ticket_type", "status", "priority", "subject", "details_text", "claimed_by", "request_status", "internal_notes", "created_at", "updated_at", "closed_at", "closed_by", "transcript_message_id") values
+(1, '1487703325745877116', 1, '1489716699975385220', '1007182472401924126', 'add_bot_request', 'OPEN', 'medium', 'Meow', 'Meow msow e', '1007182472401924126', 'pending', '', 1775246539, 1775246558, NULL, NULL, NULL);;

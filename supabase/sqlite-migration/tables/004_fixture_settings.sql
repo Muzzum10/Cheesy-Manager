@@ -1,0 +1,4 @@
+insert into public."fixture_settings" ("guild_id", "min_players", "max_players", "max_reserve", "rep_rules", "match_format", "deadline", "title_text", "sponsor_text", "max_matches_per_day", "auto_announce_time", "auto_announce_enabled") values
+('1308361837300940840', '7v7', '9v9', 20, '1 rep = 30 runs, 2 rep = 25 runs, 3 rep = 20 runs', '1 rep = 30 runs, 2 rep = 25 runs, 3 rep = 20 runs', NULL, 'DXG VS CHEESE meow goosllalallwwlkwwkkwkwkwkwkwkwkwkwkwkwkwkwkwkwkwk', '<@1007182472401924126>', 1, NULL, 0),
+('1409091283384799286', '6v6', '9v9', 2, '3 Rep max ; 1 rep = 30 runs , 2 rep = 25 runs , 3 rep = 20 runs', '20 Overs without catch', 'Meow', '🏆 HAWKVERSE SEASON 2 💫', '<@1303733934655279158>', 1, NULL, 0),
+('1487703325745877116', '6v6', '9v9', 3, '3 Rep max ; 1 rep = 30 runs , 2 rep = 25 runs , 3 rep = 20 runs', '20 Overs Elite with catch', NULL, 'Cinematic Showdown', 'Copyninja10', 1, NULL, 0);
