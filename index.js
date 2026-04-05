@@ -280,6 +280,9 @@ async function createTimestampedSnapshot(dirPath, prefix) {
     return createDatabaseSnapshotAt(path_1.default.join(dirPath, `${prefix}-${getTimestampStamp()}.sqlite`));
 }
 async function ensureDailyBackup() {
+    if ((0, database_1.getDBKind)() === 'postgres') {
+        return { created: false };
+    }
     ensureDirectory(DAILY_BACKUP_DIR);
     const dailyPath = path_1.default.join(DAILY_BACKUP_DIR, `auction_v2-daily-${getUtcDateStamp()}.sqlite`);
     if (fs_1.default.existsSync(dailyPath)) {
@@ -1213,7 +1216,8 @@ async function finalizeHcAutoMatch(matchId) {
                     match_id, guild_id, channel_id, batter_norm, bowler_norm,
                     batter_display_name, bowler_display_name, runs, balls,
                     dismissals, matches, faced_matches, innings_faced, created_at
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`, contribution.matchId, contribution.guildId, contribution.channelId, contribution.batterNorm, contribution.bowlerNorm, contribution.batterDisplayName, contribution.bowlerDisplayName, contribution.runs, contribution.balls, contribution.dismissals, contribution.matches, contribution.facedMatches, contribution.inningsFaced, finalizedAt);
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ON CONFLICT(match_id, batter_norm, bowler_norm) DO NOTHING`, contribution.matchId, contribution.guildId, contribution.channelId, contribution.batterNorm, contribution.bowlerNorm, contribution.batterDisplayName, contribution.bowlerDisplayName, contribution.runs, contribution.balls, contribution.dismissals, contribution.matches, contribution.facedMatches, contribution.inningsFaced, finalizedAt);
             await db.run(`INSERT INTO hc_global_matchups (
                     batter_norm, bowler_norm, batter_display_name, bowler_display_name,
                     runs, balls, dismissals, matches, faced_matches, innings_faced, updated_at
@@ -3821,7 +3825,7 @@ client.on('messageCreate', wrapAsyncEventHandler('messageCreate', async (message
         return;
     }
     // IPL Predictions (Admin)
-    if (['setiplpredictchannel', 'sipc', 'setiplannouncechannel', 'siac', 'setiplannouncepingroles', 'siapr', 'announceipl', 'aipl', 'iplwinner', 'ipw', 'iplwinner1', 'ipw1', 'iplwinner2', 'ipw2', 'editiplwinner', 'ipwedit', 'eipw', 'ipltop4result', 'it4r', 'ipltop4picks', 'it4p', 'iplfixtures', 'ifx', 'ipf', 'iplmatchreport', 'imr', 'ipr', 'ipldaypicks', 'idp', 'predictionstatspreview', 'psprev', 'psp', 'predictlbpreview', 'plbprev', 'plbp', 'predictionflowpreview', 'pfprev', 'pfp', 'postpredictguide', 'ppguide', 'predguide', 'predictiondmpanel', 'pdpanel'].includes(command)) {
+    if (['setiplpredictchannel', 'sipc', 'setiplannouncechannel', 'siac', 'setiplannouncepingroles', 'siapr', 'announceipl', 'aipl', 'iplwinner', 'ipw', 'iplwinner1', 'ipw1', 'iplwinner2', 'ipw2', 'editiplwinner', 'ipwedit', 'eipw', 'ipltop4result', 'it4r', 'ipltop4picks', 'it4p', 'iplfixtures', 'ifx', 'ipf', 'iplmatchreport', 'imr', 'ipr', 'ipldaypicks', 'idp', 'predictionstatspreview', 'psprev', 'psp', 'predictlbpreview', 'plbprev', 'plbp', 'predictionflowpreview', 'pfprev', 'pfp', 'postpredictguide', 'ppguide', 'predguide', 'predictiondmpanel', 'pdpanel', 'superpredict', 'spred'].includes(command)) {
         if (!(0, utils_1.isAdmin)(message.member))
             return;
         let finalCommand = command;
@@ -3839,6 +3843,8 @@ client.on('messageCreate', wrapAsyncEventHandler('messageCreate', async (message
             finalCommand = 'iplwinner';
         if (command === 'ipwedit' || command === 'eipw')
             finalCommand = 'editiplwinner';
+        if (command === 'spred')
+            finalCommand = 'superpredict';
         if (command === 'ipw1')
             finalCommand = 'iplwinner1';
         if (command === 'ipw2')
@@ -4237,10 +4243,11 @@ client.on('messageCreate', wrapAsyncEventHandler('messageCreate', async (message
             return;
     }
     // User Commands
-    if (['wallet', 'checkset', 'cset', 'roster', 'teams', 'sets', 'players', 'leaderboard', 'tlb', 'allrosters', 'renameteam', 'summary', 'wait', 'wt', 'rosterwithping', 'rwp', 'teammsg', 'tm', 'jointeam', 'jt', 'requestteam', 'joinrequests', 'jr', 'myteamdetail', 'mtd', 'teamdetail', 'opponentteamdetail', 'otd', 'checktime', 'time', 'dmrole', 'scheduledm', 'sdm', 'stats', 'st', 'overallstats', 'lb', 'statlb', 'reserve', 'res', 'freewin', 'fw', 'agree', 'ag', 'os', 'allr', 'rnt', 'sum', 'rq', 'publicping', 'pping', 'pp', 'listregteams', 'lrt', 'trade', 'td', 'listpublicpings', 'lpp', 'seasons', 'szn', 'leaveteam', 'lt', 'stadiumname', 'renamestadium', 'teamrename', 'trn', 'myteamrename', 'teamkick', 'tk', 'kickinactive', 'teamadd', 'ta', 'transfercaptain', 'tcap', 'changecaptain', 'setcaptain', 'setvicecaptain', 'svc', 'removevicecaptain', 'rvc'].includes(command)) {
+    if (['wallet', 'checkset', 'cset', 'roster', 'teams', 'sets', 'players', 'leaderboard', 'tlb', 'allrosters', 'renameteam', 'summary', 'wait', 'wt', 'rosterwithping', 'rwp', 'teammsg', 'tm', 'jointeam', 'jt', 'requestteam', 'joinrequests', 'jr', 'myteamdetail', 'mtd', 'teamdetail', 'opponentteamdetail', 'otd', 'checktime', 'time', 'teamhistory', 'th', 'dmrole', 'scheduledm', 'sdm', 'stats', 'st', 'overallstats', 'lb', 'statlb', 'reserve', 'res', 'freewin', 'fw', 'agree', 'ag', 'os', 'allr', 'rnt', 'sum', 'rq', 'publicping', 'pping', 'pp', 'listregteams', 'lrt', 'trade', 'td', 'listpublicpings', 'lpp', 'seasons', 'szn', 'leaveteam', 'lt', 'stadiumname', 'renamestadium', 'teamrename', 'trn', 'myteamrename', 'teamkick', 'tk', 'kickinactive', 'teamadd', 'ta', 'transfercaptain', 'tcap', 'changecaptain', 'setcaptain', 'setvicecaptain', 'svc', 'removevicecaptain', 'rvc'].includes(command)) {
         let finalUserCommand = command;
         if (command === 'cset') finalUserCommand = 'checkset';
         if (command === 'tlb') finalUserCommand = 'leaderboard';
+        if (command === 'th') finalUserCommand = 'teamhistory';
         if (command === 'pping' || command === 'pp') finalUserCommand = 'publicping';
         if (command === 'lpp') finalUserCommand = 'listpublicpings';
         if (command === 'os') finalUserCommand = 'overallstats';

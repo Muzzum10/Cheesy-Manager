@@ -70,16 +70,20 @@ async function awaitComponent(message, options, timeoutText = '❌ Interaction t
         return await message.awaitMessageComponent(options);
     }
     catch (e) {
-        try {
-            if (message.editable) {
-                await message.edit({ content: timeoutText, components: [] });
+        if (e.name === 'InteractionCollectorError' || e.code === 'InteractionCollectorError' || String(e.message || '').toLowerCase().includes('time')) {
+            try {
+                if (message.editable) {
+                    await message.edit({ content: timeoutText, components: [] });
+                }
+                else if (message.channel) {
+                    await message.channel.send(timeoutText);
+                }
             }
-            else if (message.channel) {
-                await message.channel.send(timeoutText);
+            catch (_a) {
             }
+            return null;
         }
-        catch (_a) {
-        }
+        console.error('Error in awaitComponent:', e);
         return null;
     }
 }
@@ -1098,18 +1102,40 @@ class MatchSystem {
             if (!eligibility.ok) {
                 return message.reply(eligibility.message);
             }
+
+            const confirmId = `reserve_confirm_${message.id}`;
+            const cancelId = `reserve_cancel_${message.id}`;
+            const row = new discord_js_1.ActionRowBuilder().addComponents(
+                new discord_js_1.ButtonBuilder().setCustomId(confirmId).setLabel('Confirm Reserve').setStyle(discord_js_1.ButtonStyle.Warning),
+                new discord_js_1.ButtonBuilder().setCustomId(cancelId).setLabel('Cancel').setStyle(discord_js_1.ButtonStyle.Secondary)
+            );
+            const prompt = await message.reply({
+                content: `⚠️ **${teamName}**, do you want to use a **RESERVE** for this match?`,
+                components: [row]
+            });
+            const interaction = await awaitComponent(prompt, { filter: i => i.user.id === message.author.id && [confirmId, cancelId].includes(i.customId), time: 30000 }, 'Reserve confirmation timed out.');
+            
+            if (!interaction || interaction.customId === cancelId) {
+                if (interaction) {
+                    await interaction.update({ content: 'Reserve cancelled.', components: [] }).catch(() => null);
+                }
+                return true;
+            }
+
             const result = await this.applyReserveToReservation(message.guild, message.channel, res, teamId, teamName, message.author.id, false, true);
             if (!result.ok) {
                 if (result.reason === 'limit') {
-                    return message.reply(`❌ **${teamName}** has already reached the maximum reserve limit of **${result.limit}** for this season.`);
+                    await interaction.update({ content: `❌ **${teamName}** has already reached the maximum reserve limit of **${result.limit}** for this season.`, components: [] }).catch(() => null);
+                } else {
+                    await interaction.update({ content: result.message || 'Warning: Failed to apply the reserve.', components: [] }).catch(() => null);
                 }
-                return message.reply(result.message || 'Warning: Failed to apply the reserve.');
+                return true;
             }
-            message.reply({ embeds: [new discord_js_1.EmbedBuilder()
-                .setTitle("Match Reserved / Postponed")
-                .setDescription(`**${teamName}** has used a reserve.\n\n**Reserves used by ${teamName}:** ${result.usedCount}/${result.limit}`)
-                .setColor(0xFFFF00)]
-            });
+
+            await interaction.update({ 
+                content: `✅ **Confirmed:** **${teamName}** has used a reserve.\n\n**Reserves used by ${teamName}:** ${result.usedCount}/${result.limit}`,
+                components: [] 
+            }).catch(() => null);
             return true;
         }
 
